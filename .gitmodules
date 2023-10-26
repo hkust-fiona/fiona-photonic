@@ -1,0 +1,3 @@
+[submodule "!models/pnn"]
+	path = !models/pnn
+	url = https://github.com/LIU-Yinyi/Photonic-Neural-Networks.git

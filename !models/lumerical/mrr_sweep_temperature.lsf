@@ -1,0 +1,58 @@
+clear;
+
+temp_start = 300;
+temp_end = 330;
+temp_interval = 5;
+
+temp_values = temp_start:temp_interval:temp_end;
+
+if (designmode == 1) { run; }
+tmp = getresult('ONA_1', 'input 1/mode 1/gain');
+wl = tmp.wavelength;
+num_temp = length(temp_values);
+num_data = length(wl);
+
+gain1_values = matrix(num_temp, num_data);
+gain2_values = matrix(num_temp, num_data);
+index = 0;
+for (t = temp_values) {
+
+    switchtodesign;
+    set('temperature', t);
+    run;
+    
+    gain1 = getresultdata('ONA_1', 'input 1/mode 1/gain');
+    gain2 = getresultdata('ONA_1', 'input 2/mode 1/gain');
+    
+    index = index + 1;
+    gain1_values(index, 1:num_data) = gain1;
+    gain2_values(index, 1:num_data) = gain2;
+}
+
+legend_text = cell(num_temp);
+
+holdoff;
+for (i=1:num_temp) {
+    plot(wl * 1e6, gain1_values(i, 1:num_data));
+    holdon;
+    legend_text{i} = 'T=' + num2str(temp_values(i)) + 'K';
+}
+holdoff;
+setplot('x label', 'wavelength [um]');
+setplot('y label', 'gain of input1');
+legend(legend_text);
+
+
+for (i=1:num_temp) {
+    plot(wl * 1e6, gain2_values(i, 1:num_data));
+    holdon;
+    legend_text{i} = 'T=' + num2str(temp_values(i)) + 'K';
+}
+holdoff;
+setplot('x label', 'wavelength [um]');
+setplot('y label', 'gain of input1');
+legend(legend_text);
+
+
+
+clear(i, t, tmp, index, gain1, gain2, num_temp, num_data);

@@ -1,0 +1,198 @@
+if (layoutmode == 0) { switchtolayout; }
+deleteall;
+clear;
+
+gap_start = 650e-9;
+gap_end = 700e-9;
+gap_interval = 10e-9;
+gap_values = gap_start:gap_interval:gap_end;
+num_point = length(gap_values);
+cp_values = matrix(num_point);
+neff_values = matrix(num_point);
+
+i = 0;
+flag_run = true;
+
+for (gap=gap_values) {
+
+switchtolayout;
+deleteall;
+
+R=150*1e-6; RW=1.0*1e-6;  ## Parameter Set 1 # microns
+W=1.0*1e-6; height=0.8e-6;  ## Parameter Set 2
+n_SiN=1.974; n_SiO2=1.457147;
+port_x=27e-6;
+
+# add ring
+addring;
+set("name","normal_ring"); 
+set("x",0); set("y",R); 
+set("inner radius",R-RW/2); 
+set("outer radius",R+RW/2); 
+set("z",0); set("z span",height); 
+set("theta start",-120); set("theta stop",-60);
+
+# add bus wg
+vertices_wg = [-200e-6,-RW/2-gap;200e-6,-RW/2-gap;200e-6,-RW/2-gap-W;-200e-6,-RW/2-gap-W;-200e-6,-RW-gap]; # microns
+addpoly;
+set("name","bus_wg");
+set("vertices",vertices_wg);
+set("z span",height);
+set("x",0);
+set("y",0);
+set("z",0);
+
+# set index
+select('normal_ring');
+set('index',n_SiN);
+select('bus_wg');
+set('index',n_SiN);
+
+# add FDTD
+addfdtd;
+set("dimension",2); # 1 = 2D, 2 = 3D
+set("x",0);
+set("x span",68e-6);
+set("y",0.2e-6);
+set("y span",10e-6);
+set("z",0);
+set("z span",4e-6);
+
+select('FDTD');
+set('index',n_SiO2);
+set("mesh accuracy",3);
+set("z min bc","symmetric");
+
+# add mesh
+addmesh;
+set("name","mesh_coupling");
+# set dimension
+set("x",0);
+set("x span",30e-6);
+set("y",-0.7e-6);
+set("y span",6e-6);
+set("z",0);
+set("z span",1.5e-6);
+# enable in X direction and disable in Y,Z directions
+set("override x mesh",1);
+set("override y mesh",1);
+set("override z mesh",0);
+# restrict mesh by defining maximum step size
+set("set maximum mesh step",1);
+set("dx",30e-9);
+set("dy",30e-9);
+#run;
+
+# add mode source
+addmode;
+set("injection axis","x");
+set("x",-port_x-3*1e-6);
+set("y",-RW/2-gap-W/2);
+set("y span",W+3e-6);
+set("z",0);
+set("z span",2e-6);
+set("mode selection","fundamental TE mode");
+set("center wavelength",1.55e-6);
+set("frequency span",0);
+
+# add power
+addpower; # Port 2
+set("name","Port 2");
+set("monitor type",5); # 1 = point, 2 = linear x, 3 = linear y, 4 = linear z, 5 = 2D x-n
+set("x",-port_x);
+set("y",2.4e-6);
+set("y span",RW+3e-6);
+set("z",0);
+set("z span",2e-6);
+addpower; # Port 4
+set("name","Port 4");
+set("monitor type",5); # 1 = point, 2 = linear x, 3 = linear y, 4 = linear z, 5 = 2D x-n
+set("x",port_x);
+set("y",2.4e-6);
+set("y span",RW+3e-6);
+set("z",0);
+set("z span",2e-6);
+
+addpower; # Port 1
+set("name","Port 1");
+set("monitor type",5); # 1 = point, 2 = linear x, 3 = linear y, 4 = linear z, 5 = 2D x-n
+set("x",-port_x);
+set("y",-RW/2-gap-W/2);
+set("y span",W+3e-6);
+set("z",0);
+set("z span",2e-6);
+addpower; # Port 3
+set("name","Port 3");
+set("monitor type",5); # 1 = point, 2 = linear x, 3 = linear y, 4 = linear z, 5 = 2D x-n
+set("x",port_x);
+set("y",-RW/2-gap-W/2);
+set("y span",W+3e-6);
+set("z",0);
+set("z span",2e-6);
+# add modeexpansion
+addmodeexpansion;#1
+set("name","mode_expansion 1");
+setexpansion("input", "Port 1");
+set("mode selection","fundamental TE mode");
+set("monitor type",1);
+set("x",-port_x);
+set("y",-RW/2-gap-W/2);
+set("y span",W+3e-6);
+set("z",0);
+set("z span",2e-6);
+addmodeexpansion;#3
+set("name","mode_expansion 3");
+setexpansion("input", "Port 3");
+set("mode selection","user select");
+set("selected mode numbers",[1,2,3]);
+set("monitor type",1);
+set("x",port_x);
+set("y",-RW/2-gap-W/2);
+set("y span",W+3e-6);
+set("z",0);
+set("z span",2e-6);
+
+addmodeexpansion;#2
+set("name","mode_expansion 2");
+setexpansion("input", "Port 2");
+set("mode selection","fundamental TE mode");
+set("monitor type",1);
+set("x",-port_x);
+set("y",2.5e-6);
+set("y span",RW+3e-6);
+set("z",0);
+set("z span",2e-6);
+addmodeexpansion;#4
+set("name","mode_expansion 4");
+setexpansion("input", "Port 4");
+set("mode selection","fundamental TE mode");
+set("monitor type",1);
+set("x",port_x);
+set("y",2.5e-6);
+set("y span",RW+3e-6);
+set("z",0);
+set("z span",2e-6);
+
+addprofile; 
+set("name","field_profile"); 
+set("monitor type",7); # 1 = point, 2 = linear x, 3 = linear y, 4 = linear z, 5 = 2D x-normal, 6 = 2D y-normal, 7 = 2D z-normal, 8 = 3D 
+set("x",0); set("x span",80e-6);
+set("y",0); set("y span",18e-6);
+set("z",0);
+
+# calculate coef [target=0.0486331]
+    if (flag_run) {
+        run;
+        t = transmission('Port 3');
+        k = sqrt(1 - t^2);
+        neff_dat = getresult('mode_expansion 1', 'neff');
+        
+        i = i + 1;
+        cp_values(i) = k;
+        neff_values(i) = neff_dat.neff;
+    }
+}
+
+if (flag_run) { 
+    clear(i, t, k, port_x, gap, vertices_wg, neff_dat);
+}

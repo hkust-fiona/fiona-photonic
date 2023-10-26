@@ -1,0 +1,54 @@
+clear;
+
+cp_start = 0.02;
+cp_end = 0.06;
+cp_interval = 0.002;
+
+cp_values = cp_start:cp_interval:cp_end;
+er_thru_values = matrix(length(cp_values));
+er_drop_values = matrix(length(cp_values));
+
+i = 0;
+
+for (cp_coef = cp_values) {
+    switchtodesign;
+    set('coupling_coef', cp_coef);
+    run; i = i + 1;
+    ext_ratio = getresultdata('ONA_1', 'input 1/mode 1/peak/extinction ratio');
+    er_thru_values(i) = min(ext_ratio);
+    ext_ratio = getresultdata('ONA_1', 'input 2/mode 1/peak/extinction ratio');
+    er_drop_values(i) = min(ext_ratio);
+}
+
+xlabel = 'coupling coef';
+ylabel = 'extinction ratio (dB)';
+wtitle = 'add-drop filter ER vs CP';
+plot(cp_values, er_thru_values, er_drop_values, xlabel, ylabel, wtitle);
+legend('Through', 'Drop');
+
+clear(i, cp_coef, ext_ratio, xlabel, ylabel, wtitle);
+
+# find the intersection point
+num_point = length(cp_values);
+sign_diff = sign(er_thru_values - er_drop_values);
+line_er_thru = matrix(2, 2);
+line_er_drop = matrix(2, 2);
+
+loop_flag = true;
+for (i = 1; i < num_point and loop_flag; i = i + 1) {
+    if (sign_diff(i) * sign_diff(i+1) <= 0) {
+        turning_point = i;
+        loop_flag = false;
+    }
+}
+
+span_index = turning_point:turning_point+1;
+line_er_thru(1:2, 1) = cp_values(span_index);
+line_er_drop(1:2, 1) = cp_values(span_index);
+line_er_thru(1:2, 2) = er_thru_values(span_index);
+line_er_drop(1:2, 2) = er_drop_values(span_index);
+intersect_point = lineintersect(line_er_thru, line_er_drop);
+?'[INFO] intersect at: ' + 'coupling_coef = ' + num2str(intersect_point(1)) + ', extinction_ratio = ' + num2str(intersect_point(2));
+
+clear(i, sign_diff, span_index, turning_point, loop_flag);
+clear(line_er_thru, line_er_drop, num_point);
